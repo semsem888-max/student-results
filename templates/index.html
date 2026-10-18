@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>استعلام نتائج الطلاب</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+        <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">نتيجة الطالب</h1>
+        
+        <!-- الخطوة الأولى: إدخال رقم الجلوس -->
+        <div id="step1" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">رقم الجلوس</label>
+                <input type="text" id="seatInput" placeholder="أدخل رقم الجلوس" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+            <button onclick="searchStudent()" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">بحث</button>
+            <p id="errorMsg" class="text-red-500 text-sm text-center hidden"></p>
+        </div>
+
+        <!-- الخطوة الثانية: عرض بيانات الطالب واختيار المادة -->
+        <div id="step2" class="space-y-4 hidden">
+            <div class="bg-blue-50 p-4 rounded-lg space-y-2">
+                <div class="flex justify-between border-b pb-2">
+                    <span class="text-sm text-gray-600">اسم الطالب:</span>
+                    <span id="studentName" class="font-bold text-blue-900"></span>
+                </div>
+                <div class="flex justify-between pt-1">
+                    <span class="text-sm text-gray-600">المستوى:</span>
+                    <span id="studentLevel" class="font-bold text-blue-800"></span>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">اختر المادة لعرض درجتها</label>
+                <select id="subjectSelect" onchange="getGrade()" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="">-- اختر المادة --</option>
+                </select>
+            </div>
+
+            <div id="gradeContainer" class="hidden bg-green-50 p-4 rounded-lg text-center border border-green-200">
+                <p class="text-sm text-gray-600">درجة مادة <span id="selectedSubjectName"></span>:</p>
+                <p id="gradeValue" class="text-3xl font-extrabold text-green-700 mt-1"></p>
+            </div>
+
+            <button onclick="resetSearch()" class="w-full bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition">بحث عن رقم آخر</button>
+        </div>
+    </div>
+
+    <script>
+        let currentSeat = "";
+
+        async function searchStudent() {
+            const seat = document.getElementById('seatInput').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
+            
+            if (!seat) {
+                errorMsg.innerText = "الرجاء إدخال رقم الجلوس";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/student/search?seat_number=${seat}`);
+                if (!response.ok) throw new Error("رقم الجلوس غير صحيح");
+                
+                const data = await response.json();
+                currentSeat = data.seat_number;
+                
+                document.getElementById('studentName').innerText = data.name;
+                document.getElementById('studentLevel').innerText = data.level;
+                
+                const select = document.getElementById('subjectSelect');
+                select.innerHTML = '<option value="">-- اختر المادة --</option>';
+                data.subjects.forEach(sub => {
+                    let opt = document.createElement('option');
+                    opt.value = sub;
+                    opt.innerText = sub;
+                    select.appendChild(opt);
+                });
+
+                document.getElementById('step1').classList.add('hidden');
+                document.getElementById('step2').classList.remove('hidden');
+                errorMsg.classList.add('hidden');
+            } catch (err) {
+                errorMsg.innerText = "رقم الجلوس غير موجود أو حدث خطأ";
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        async function getGrade() {
+            const subject = document.getElementById('subjectSelect').value;
+            const gradeContainer = document.getElementById('gradeContainer');
+            
+            if (!subject) {
+                gradeContainer.classList.add('hidden');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/student/grade?seat_number=${currentSeat}&subject=${encodeURIComponent(subject)}`);
+                const data = await response.json();
+                
+                document.getElementById('selectedSubjectName').innerText = data.subject;
+                document.getElementById('gradeValue').innerText = data.grade;
+                gradeContainer.classList.remove('hidden');
+            } catch (err) {
+                alert("فشل في جلب الدرجة");
+            }
+        }
+
+        function resetSearch() {
+            document.getElementById('seatInput').value = "";
+            document.getElementById('gradeContainer').classList.add('hidden');
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step1').classList.remove('hidden');
+            currentSeat = "";
+        }
+    </script>
+</body>
+</html>
