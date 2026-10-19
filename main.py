@@ -27,7 +27,6 @@ def search_student(seat_number: str = Query(...)):
     
     student_name = student_row.iloc[0]['name']
     
-    # تحديد المستوى
     student_level = "غير محدد"
     if 'level' in df.columns:
         student_level = student_row.iloc[0]['level']
@@ -37,7 +36,6 @@ def search_student(seat_number: str = Query(...)):
     if pd.isna(student_level):
         student_level = "غير محدد"
     
-    # استخراج كافة المواد والدرجات الخاصة بالطلب
     excluded_cols = ['seat_number', 'name', 'level', 'المستوى']
     subject_cols = [col for col in df.columns if col not in excluded_cols]
     
